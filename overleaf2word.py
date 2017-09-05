@@ -1,8 +1,10 @@
+# -*- coding: utf-8 -*-
 import chardet
 from collections import namedtuple
 import bibtexparser
 import docx
 from docx.enum.text import WD_BREAK
+from functools import partial
 from glob import glob
 from git import Repo
 from itertools import takewhile
@@ -25,8 +27,14 @@ def overleaf2word(url,files=[]) :
         repo = Repo(repo_dir)
         repo.remotes['origin'].pull()
         
+    # check for .bib file
+    bibfn = glob(os.path.join(repo_dir,'*.bib'))
+    if bibfn :
+        bibfn = bibfn[0]
+    else :
+        bibfn = None
     for fn in files :
-        tex_to_word(os.path.join(repo_dir,fn))
+        tex_to_word(os.path.join(repo_dir,fn),bibfn)
         
 
 ##########################################################################################
@@ -58,14 +66,28 @@ lexer = lex.lex()
 ##########################################################################################
 
 Text = namedtuple('Text',['text','type','style','props'])
+Word = partial(Text,type='word',style=None,props=None)
 
+def tou(text) :
+    if isinstance(text,unicode) :
+        return text
+        
+    # text can come in different encodings, coerce it to utf-8
+    try :
+        text = unicode(text,errors='replace')
+    except TypeError as e :
+        print('Error encoding unicode, pass:',e)
+    return text
+    
 def add_run(par,words) :
     if words :
         # add a space at the end for funsies
         text = ' '.join(_.text for _ in words)
         text += ' '
-        # text can come in different encodings, coerce it to utf-8
-        text = unicode(text,errors='replace')
+        
+        # convert to unicode
+        text = tou(text)
+        
         r = par.add_run(text,words[-1].style)
         if words[-1].props :
             for k,v in words[-1].props.items() :
@@ -90,6 +112,9 @@ def add_paragraph(doc,words) :
         add_run(par,curr_type)
     
 def tex_to_word(tex_fn,bib_fn=None) :
+    
+    print('\n-------------------------------------------------------------------')
+    print(tex_fn)
         
     with open(tex_fn) as f :
         tex = f.read()
@@ -115,6 +140,7 @@ def tex_to_word(tex_fn,bib_fn=None) :
     
     doc = docx.Document()
     text_started = False
+    refs = set()
     words = []
     
     while True :
@@ -153,6 +179,7 @@ def tex_to_word(tex_fn,bib_fn=None) :
                 if bibdb :
                     refids = tok.args.split(',')
                     refids = [_ for _ in refids if _]
+                    refs.update(set(refids))
                     ref_strs = []
                     for refid in refids :
                         entry = bibdb[refid] 
@@ -196,12 +223,7 @@ def tex_to_word(tex_fn,bib_fn=None) :
         # regular text word
         if tok.type == 'WORD' :
             text_started = True
-            text = Text(
-                text=tok.value,
-                type='word',
-                style=None,
-                props=None
-            )
+            text = Word(text=tok.value)
             words.append(text)
             
         # if we hit two newlines in a row, create a new paragraph
@@ -213,9 +235,61 @@ def tex_to_word(tex_fn,bib_fn=None) :
             
         prev_token = tok
             
+    # do refs if there are refs
+    
+    if refs :
+        doc.add_heading('References',heading_level)
+        
+        refs = sorted(list(refs))
+        for i,refid in enumerate(refs) :
+            ref = bibdb[refid]
+            author = ''
+            if 'author' in ref :
+                author = ref['author'].split(' and ')
+                author = author[0]+u' et al. '
+            title = (tou(ref.get('title',''))
+                .replace('{','')
+                .replace('}','')
+                .replace('\n',' ')
+            )
+            ref_words = [Word(text='{}. '.format(i+1)),
+                Word(text=author),
+                Word(text=title+u'. ')]
+                
+            def fmt(key,pref='',suff='') :
+                if key in ref :
+                    return Word(tou(pref+ref[key]+suff))
+                
+            ref_words.extend([
+                fmt('journal',suff=u'. '),
+                fmt('booktitle',suff=u'. '),
+                fmt('volume',suff=u', '),
+                fmt('pages',suff=u' '),
+                fmt('year',pref=u'(',suff=u')'),
+                fmt('howpublished',pref=u'(',suff=u')'),
+                fmt('note'),
+                Word(text=u'.')
+            ])
+            ref_words = [_ for _ in ref_words if _]
+            add_paragraph(doc,ref_words)
+                
+    """
+    [{'journal': 'Nice Journal',
+      'comments': 'A comment',
+      'pages': '12--23',
+      'month': 'jan',
+      'abstract': 'This is an abstract. This line should be long enough to test\nmultilines...',
+      'title': 'An amazing title',
+      'year': '2013',
+      'volume': '12',
+      'ID': 'Cesar2013',
+      'author': 'Jean César',
+      'keyword': 'keyword1, keyword2',
+      'ENTRYTYPE': 'article'}]
+    """
+
     # write out the doc
     basedir = os.path.dirname(tex_fn)
     basename, ext = os.path.splitext(os.path.basename(tex_fn))
     doc_fn = os.path.join(basedir,'{}.docx'.format(basename))
     doc.save(doc_fn)
-        
