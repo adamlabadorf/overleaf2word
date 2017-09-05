@@ -1,0 +1,6 @@
+python-docx
+TexSoup
+gitpython
+ply
+bibtexparser
+chardet
