@@ -68,7 +68,7 @@ python run.py # looks for sources.json
 python run.py some_other_overleaf_sources.json
 ```
 
-Every time `run.py` is executed, each of the repos in `sources.json` is cloned
+Every time `run.py` is executed, each of the repos in the sources file is cloned
 locally and the `latex_paths` are converted to correspondingly named Word docs.
 
 If you don't want to use this with overleaf, the function `tex_to_word` can be
