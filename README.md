@@ -67,7 +67,7 @@ locally and the `latex_paths` are converted to correspondingly named Word docs.
 If you don't want to use this with overleaf, the function `tex_to_word` can be
 called independently, signature:
 
-``python
+```python
 def tex_to_word(tex_fn,bib_fn=None) :
     r"""Convert a LaTeX formatted file to docx format
     
