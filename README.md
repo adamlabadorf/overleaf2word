@@ -41,8 +41,8 @@ pip install -f requirements.txt
 
 # Run
 
-The `run.py` script looks for a file named `sources.json` that has the info
-for overleaf projects:
+Run without arguments, the `run.py` script looks for a file named
+`sources.json` that has the info for overleaf projects:
 
 ```
 [
@@ -61,10 +61,11 @@ for overleaf projects:
 ]
 ``` 
 
-Run it with:
+Run it with or without a path to a sources file:
 
 ```
-python run.py
+python run.py # looks for sources.json
+python run.py some_other_overleaf_sources.json
 ```
 
 Every time `run.py` is executed, each of the repos in `sources.json` is cloned
