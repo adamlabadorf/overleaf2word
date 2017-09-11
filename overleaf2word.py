@@ -112,6 +112,22 @@ def add_paragraph(doc,words) :
         add_run(par,curr_type)
     
 def tex_to_word(tex_fn,bib_fn=None) :
+    r"""Convert a LaTeX formatted file to docx format
+    
+    Parses ``tex_fn`` and converts text and some markup tags and environments
+    into Word constructs. Creates a file with the same basename as ``tex_fn``
+    but with ``.docx`` extension, e.g. ``main.tex -> main.docx``.
+    
+    If ``bib_fn`` is not provided, all ``\cite`` tags are replaced by parentheses,
+    leaving keys as is. If ``bib_fn`` is provided, all ``\cite`` tags are replaced
+    by <Author> <Year> formatted references, and if a ``\bibliography`` tag is
+    present, a Reference section is formatted at the end of the document.
+    
+    :param tex_fn: path to LaTeX formatted file
+    :param bib_fn: optional path to BibTeX formatted file containing citation
+        information
+    :return: nothing
+    """
     
     print('\n-------------------------------------------------------------------')
     print(tex_fn)
