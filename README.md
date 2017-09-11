@@ -61,6 +61,12 @@ for overleaf projects:
 ]
 ``` 
 
+Run it with:
+
+```
+python run.py
+```
+
 Every time `run.py` is executed, each of the repos in `sources.json` is cloned
 locally and the `latex_paths` are converted to correspondingly named Word docs.
 
