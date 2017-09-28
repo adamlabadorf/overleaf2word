@@ -44,8 +44,8 @@ def overleaf2word(url,files=[]) :
 tokens = ('COMMAND','EQUATION','WORD','COMMENT','NEWLINE')
 
 def t_COMMAND(t):
-    r'\\([a-zA-Z]+)(?:\[([^]]+)\])?(?:{([^}]+)})?'
-    t.command, t.opts, t.args = t.lexer.lexmatch.groups()[1:4]
+    r'\\([a-zA-Z]+)(?:\[([^]]+)\])?(?:{([^}]+)})?(\[[^]]+\])?'
+    t.command, t.opts, t.args, t.post_opts = t.lexer.lexmatch.groups()[1:5]
     return t
 
 t_COMMENT = r'%.*'
