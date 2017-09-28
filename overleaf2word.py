@@ -15,6 +15,7 @@ from PIL import Image
 from ply import lex, yacc
 from pprint import pprint
 from subprocess import Popen
+import sys
 
 REPO_DIR = 'overleaf_repos'
 
@@ -70,16 +71,25 @@ lexer = lex.lex()
 Text = namedtuple('Text',['text','type','style','props'])
 Word = partial(Text,type='word',style=None,props=None)
 
-def tou(text) :
-    if isinstance(text,unicode) :
+# for the life of me I can't figure out how to get python 2 and 3 support with
+# this function
+# you apparently can't call unicode(s,errors='replace') if s is a unicode object
+# so you have to check for whether it is a unicode type object first, which
+# doesn't work in python 3
+# could someone else figure out how to fix this some day?
+tou = str
+if sys.version_info.major == 2:
+    def wtf_unicode(text) :
+        if isinstance(text,unicode) :
+            return text
+            
+        # text can come in different encodings, coerce it to utf-8
+        try :
+            text = unicode(text,errors='replace')
+        except TypeError as e :
+            print('Error encoding unicode, pass:',e)
         return text
-        
-    # text can come in different encodings, coerce it to utf-8
-    try :
-        text = unicode(text,errors='replace')
-    except TypeError as e :
-        print('Error encoding unicode, pass:',e)
-    return text
+    tou = wtf_unicode
     
 def add_run(par,words) :
     if words :
