@@ -4,3 +4,4 @@ gitpython
 ply
 bibtexparser
 chardet
+pillow

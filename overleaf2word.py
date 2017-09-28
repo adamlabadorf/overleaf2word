@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 import chardet
-from collections import namedtuple
+from collections import namedtuple, OrderedDict
 import bibtexparser
 import docx
+from docx.shared import Inches
 from docx.enum.text import WD_BREAK
 from functools import partial
 from glob import glob
@@ -10,6 +11,7 @@ from git import Repo
 from itertools import takewhile
 import json
 import os
+from PIL import Image
 from ply import lex, yacc
 from pprint import pprint
 from subprocess import Popen
@@ -34,7 +36,7 @@ def overleaf2word(url,files=[]) :
     else :
         bibfn = None
     for fn in files :
-        tex_to_word(os.path.join(repo_dir,fn),bibfn)
+        tex_to_word(os.path.join(repo_dir,fn),repo_dir,bibfn)
         
 
 ##########################################################################################
@@ -111,7 +113,7 @@ def add_paragraph(doc,words) :
                 curr_type.append(curr_text)
         add_run(par,curr_type)
     
-def tex_to_word(tex_fn,bib_fn=None) :
+def tex_to_word(tex_fn,repo_dir,bib_fn=None) :
     r"""Convert a LaTeX formatted file to docx format
     
     Parses ``tex_fn`` and converts text and some markup tags and environments
@@ -231,6 +233,17 @@ def tex_to_word(tex_fn,bib_fn=None) :
                 
             elif tok.command == 'clearpage' :
                 doc.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
+                
+            elif tok.command == 'includegraphics' :
+                pic_path = os.path.join(repo_dir,tok.args)
+                img = Image.open(pic_path)
+                # calculate the image width in inches assuming 72 dpi
+                # maximum 6 inches
+                dpi = 72
+                img_width = min(img.size[0]/72,6)
+                
+                doc.add_picture(pic_path,width=Inches(img_width))
+                
             else :
                 print('unrecognized command:',tok.command,tok.opts,tok.args)
         if tok.type == 'EQUATION' :
