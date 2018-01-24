@@ -24,6 +24,9 @@ def overleaf2word(url,files=[]) :
     repo_root = url.split('/')[-1]
     repo_dir = '{}/{}'.format(REPO_DIR,repo_root)
     
+    if not os.path.exists(REPO_DIR) :
+      os.mkdir(REPO_DIR)
+    
     if not os.path.exists(repo_dir) :
         repo = Repo.clone_from(url,repo_dir)
     else :
