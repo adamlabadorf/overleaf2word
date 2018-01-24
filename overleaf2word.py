@@ -19,9 +19,15 @@ import sys
 
 REPO_DIR = 'overleaf_repos'
 
-def overleaf2word(url,files=[]) :
+def overleaf2word(url,name=None,files=[]) :
     
     repo_root = url.split('/')[-1]
+
+    if name is not None :
+      # sanitize name
+      replace = ' &;()/\\'
+      repo_root = name.translate(str.maketrans(replace,'_'*len(replace))).lower()
+
     repo_dir = '{}/{}'.format(REPO_DIR,repo_root)
     
     if not os.path.exists(REPO_DIR) :

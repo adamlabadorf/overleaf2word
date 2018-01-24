@@ -13,4 +13,7 @@ if __name__ == '__main__':
     with open(args.sources) as f :
         overleaf_repos = json.load(f)
     for repo in overleaf_repos :
-        overleaf2word(repo['git_clone_url'],repo.get('latex_paths',[]))
+        overleaf2word(repo['git_clone_url'],
+          repo.get('name'),
+          repo.get('latex_paths',[])
+        )
