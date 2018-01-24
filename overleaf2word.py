@@ -51,7 +51,8 @@ def overleaf2word(url,name=None,files=[]) :
 
 ##########################################################################################
 # this is the ply tokenizer for latex
-tokens = ('COMMAND','EQUATION','WORD','COMMENT','NEWLINE')
+tokens = ('MANUALNEWLINE','COMMAND','EQUATION','WORD','COMMENT',
+          'NEWLINE',)
 
 def t_COMMAND(t):
     r'\\(?!%)([a-zA-Z]+\*?)(?:\[([^]]+)\])?(?:{([^}]+)})?(\[[^]]+\])?'
@@ -63,9 +64,13 @@ def t_NEWLINE(t):
     r'\n'
     t.lexer.lineno += len(t.value)
     return t
+def t_MANUALNEWLINE(t):
+    r'\\\\'
+    t.lexer.lineno += len(t.value)
+    return t
 t_WORD = r'[^\ \n]+'
 def t_EQUATION(t) :
-    r'[$][^$]+[$]'
+    r'(?<!\\)[$][^$]+[$]'
     return t
 
 t_ignore = ' '
@@ -270,23 +275,26 @@ def tex_to_word(tex_fn,repo_dir,bib_fn=None) :
                     
         # regular text word
         if tok.type == 'WORD' :
-            # replace escaped percents with literal percents
+            # replace escaped chars with literal chars
             tok.value = tok.value.replace(r'\%','%')
+            tok.value = tok.value.replace(r'\$','$')
 
             text_started = True
             text = Word(text=tok.value)
             words.append(text)
             
 
-        # if we hit two newlines in a row, create a new paragraph
-        if tok.type == 'NEWLINE' and \
-           prev_token and prev_token.type == 'NEWLINE' and \
-           text_started :
-               add_paragraph(doc,words)
-               words = []
-            
+        if tok.type == 'NEWLINE' :
+            # if we hit two newlines in a row, create a new paragraph
+            if prev_token and prev_token.type == 'NEWLINE' and text_started :
+                add_paragraph(doc,words)
+                words = []
+
+        if tok.type == 'MANUALNEWLINE' :
+            words.append(Word(text='\n'))
+
         prev_token = tok
-            
+        
     # do refs if there are refs
     
     if refs :
