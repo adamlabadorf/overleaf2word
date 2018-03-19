@@ -166,9 +166,9 @@ def tex_to_word(tex_fn,repo_dir,bib_fn=None) :
     if bib_fn :
         with open(bib_fn) as f:
             bibtex_str = f.read()
-        
-        bibdb = bibtexparser.loads(bibtex_str)
-        bibdb = {_['ID']:_ for _ in bibdb.entries}
+        if len(bibtex_str) > 0 :
+          bibdb = bibtexparser.loads(bibtex_str)
+          bibdb = {_['ID']:_ for _ in bibdb.entries}
     
     def is_heading(args) :
         return 'section' in args
@@ -201,12 +201,12 @@ def tex_to_word(tex_fn,repo_dir,bib_fn=None) :
                 # don't insert anything until we have seen a begin{document}
                 if tok.args == 'document' :
                     in_doc = True
-                    
+                
                 # other \begin's to be supported:
                 # table
                 # tabular
                 # figure
-                    
+                
             # \section, \subsection, \subsubsection, etc
             elif is_heading(tok.command) :
                 if words :
