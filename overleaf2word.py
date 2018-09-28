@@ -55,8 +55,9 @@ tokens = ('MANUALNEWLINE','COMMAND','EQUATION','WORD','COMMENT',
           'NEWLINE',)
 
 def t_COMMAND(t):
-    r'\\(?!%)([a-zA-Z]+\*?)(?:\[([^]]+)\])?(?:{([^}]+)})?(\[[^]]+\])?'
-    t.command, t.opts, t.args, t.post_opts = t.lexer.lexmatch.groups()[1:5]
+    r'\\(?!%)(?P<command>[a-zA-Z]+\*?)(?:\[(?P<opts>[^]]+)\])?(?:{(?P<args>[^}]+)})?(?P<post_opts>\[[^]]+\])?(?P<rest>.*)'
+    for k,v in t.lexer.lexmatch.groupdict().items() :
+        setattr(t,k,v)
     return t
 
 t_COMMENT = r'(?<![\\])%.*'
@@ -178,6 +179,10 @@ def tex_to_word(tex_fn,repo_dir,bib_fn=None) :
         
     heading_level = 1
     in_doc = False
+
+    # in_section is a stack of nested \begin{XXX} commands
+    # useful for nested elements like itemize, enumerate, etc
+    in_section = []
     prev_token = None
     
     doc = docx.Document()
@@ -206,7 +211,31 @@ def tex_to_word(tex_fn,repo_dir,bib_fn=None) :
                 # table
                 # tabular
                 # figure
-                
+                in_section.append(tok.args)
+            elif tok.command == 'end' :
+                in_section.pop()
+            elif tok.command == 'item' :
+                style = None
+                level = len(in_section)
+                if level == 1 :
+                    print('saw \\item outside of command, I dont know what to '
+                          'do so I will very cowardly ignore token:',
+                          tok.command,tok.opts,tok.args,tok.post_opts, tok.rest
+                    )
+                elif in_section[-1] == 'itemize' :
+                    style = 'List Bullet'
+                elif in_section[-1] == 'enumerate' :
+                    style = 'List Number'
+                else :
+                    print('saw \\item inside a command I dont recognize, '
+                          'I dont know what to do so I will very cowardly '
+                          'ignore token:',
+                          tok.command,tok.opts,tok.args,tok.post_opts,tok.rest
+                    )
+                if style is not None :
+                    if level > 2 :
+                        style += ' {}'.format(level-1)
+                    doc.add_paragraph(tok.rest.strip(),style=style)
             # \section, \subsection, \subsubsection, etc
             elif is_heading(tok.command) :
                 if words :
@@ -257,7 +286,7 @@ def tex_to_word(tex_fn,repo_dir,bib_fn=None) :
                 
             elif tok.command == 'clearpage' :
                 doc.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
-                
+
             elif tok.command == 'includegraphics' :
                 pic_path = os.path.join(repo_dir,tok.args)
                 img = Image.open(pic_path)
@@ -265,11 +294,11 @@ def tex_to_word(tex_fn,repo_dir,bib_fn=None) :
                 # maximum 6 inches
                 dpi = 72
                 img_width = min(img.size[0]/72,6)
-                
+
                 doc.add_picture(pic_path,width=Inches(img_width))
-                
+
             else :
-                print('unrecognized command:',tok.command,tok.opts,tok.args)
+                print('unrecognized command:',tok.command,tok.opts,tok.args,tok.post_opts)
         if tok.type == 'EQUATION' :
             print('found an equation',tok.value)
                     
