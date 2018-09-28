@@ -52,7 +52,13 @@ def overleaf2word(url,name=None,files=[]) :
 ##########################################################################################
 # this is the ply tokenizer for latex
 tokens = ('MANUALNEWLINE','COMMAND','EQUATION','WORD','COMMENT',
-          'NEWLINE',)
+          'NEWLINE','TEXTFMT')
+
+def t_TEXTFMT(t) :
+    r'\\(?!%)(?P<command>text(?:bf|it))\{(?P<args>[^}]*)\}'
+    for k,v in t.lexer.lexmatch.groupdict().items() :
+        setattr(t,k,v)
+    return t
 
 def t_COMMAND(t):
     r'\\(?!%)(?P<command>[a-zA-Z]+\*?)(?:\[(?P<opts>[^]]+)\])?(?:{(?P<args>[^}]+)})?(?P<post_opts>\[[^]]+\])?(?P<rest>.*)'
@@ -265,25 +271,7 @@ def tex_to_word(tex_fn,repo_dir,bib_fn=None) :
                     props=None
                 )
                 words.append(citation)
-                
-            elif tok.command == 'textbf' :
-                bold = Text(
-                    text=tok.args,
-                    type='textbf',
-                    style=None,
-                    props={'bold':True}
-                )
-                words.append(bold)
-                
-            elif tok.command == 'textit' :
-                italic = Text(
-                    text=tok.args,
-                    type='textit',
-                    style=None,
-                    props={'italic':True}
-                )               
-                words.append(italic)
-                
+
             elif tok.command == 'clearpage' :
                 doc.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
 
@@ -297,10 +285,14 @@ def tex_to_word(tex_fn,repo_dir,bib_fn=None) :
 
                 doc.add_picture(pic_path,width=Inches(img_width))
 
+            elif tok.command == 'newline' :
+                words.append(Word(text='\n'))
+
             else :
                 print('unrecognized command:',tok.command,tok.opts,tok.args,tok.post_opts)
+
         if tok.type == 'EQUATION' :
-            print('found an equation',tok.value)
+            print('found an equation, dont know how to do those yet',tok.value)
                     
         # regular text word
         if tok.type == 'WORD' :
@@ -321,6 +313,24 @@ def tex_to_word(tex_fn,repo_dir,bib_fn=None) :
 
         if tok.type == 'MANUALNEWLINE' :
             words.append(Word(text='\n'))
+
+        if tok.type == 'TEXTFMT' :
+            if tok.command == 'textbf' :
+                bold = Text(
+                    text=tok.args,
+                    type='textbf',
+                    style=None,
+                    props={'bold':True}
+                )
+                words.append(bold)
+            if tok.command == 'textit' :
+                italic = Text(
+                    text=tok.args,
+                    type='textit',
+                    style=None,
+                    props={'italic':True}
+                )
+                words.append(italic)
 
         prev_token = tok
         
