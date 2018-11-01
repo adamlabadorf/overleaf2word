@@ -1,1 +1,8 @@
 overleaf_repos
+parser.out
+parsetab.py
+*.egg-info
+.eggs
+*.swp
+.pytest_cache
+__pycache__
